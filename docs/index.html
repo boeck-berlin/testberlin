@@ -65,12 +65,15 @@
 <h1>Test Center Fairness in Berlin</h1>
 <p>
     This project is trying to quantify, how fair a the test centers are distributed in Berlin.
-    It is more fair if more people have shorter travel times to the test centers.
 </p>
 <p>
     The project does not claim any scientific rigor. It's mostly a tech demo for hexgrids 
     and the use of public transport for travel times instead of the more commonly seen
     LOR geometries and travel times by car.
+</p>
+<p>
+    (Un-)Fairness is caluclated as <code>travelTime * log (1 + inhabitants)</code>. 
+    That means, more travel time or more inhabitants means more unfairness.
 </p>
 <p>For the making of see this <a href="hex-grid-maker.html" target="_blank">Python notebook</a> or the <a href="https://github.com/boeck-berlin/testberlin" target="_blank">github repository</a>.</p>
 </section>
@@ -78,20 +81,11 @@
 <div id="map"></div>
 <script>
 
-    const COLORS = ['#fff7f3', '#fde0dd', '#fcc5c0', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e', '#7a0177', '#49006a']
-    const WITH_TEST_CENTER = '#49006a';
-    const NEAR_TEST_CENTER = '#7a0177';
-    const OTHERS = ['#fde0dd', '#fcc5c0', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e'];
-    const ERROR = '#FFF';
-
-    function getStyle(feature, cmap) {
-        return {
-            fillColor: cmap(feature.properties.value)
-        }
-    }
+    const COLORS = ['#fde0dd', '#fcc5c0', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e', '#7a0177', '#49006a']
+    const ERROR = '#000';
 
     function printTravelTime(t) {
-        if (t < 1) {
+        if (!t) {
             return 'none'
         } else if (t == 1) {
             return 'short'
@@ -101,24 +95,46 @@
     }
 
     function sigFig(num, p) {
-        if (num)
-            return Number.parseFloat(num.toExponential(p));
-        else return null;
+        return Number.parseFloat(num.toExponential(p));
     }
 
-    function getColor(feature) {
-        if (feature.properties.travel == 0.0) {
-            return WITH_TEST_CENTER;
-        } else if (feature.properties.travel == 1.0) {
-            return NEAR_TEST_CENTER;
-        } else if (feature.properties.error_case) {
+    function getBuckets(geojson) {
+        //let max = geojson.features.map(f => f.properties.value).reduce((a,c) => Math.max(a,c), -Infinity);
+        //let min = geojson.features.map(f => f.properties.value).reduce((a,c) => Math.min(a,c), Infinity);
+        let max = 400;
+        let min = 0;
+
+        let n = COLORS.length;
+        
+        return COLORS.map(function(c,i){
+            let b= {
+                min: min + i*(max-min) / n,
+                max: min + (i+1)*(max-min) / n,
+                color: c
+            };
+            let entry = '';
+            if (i == 0) {
+                entry = ' (more fair)';
+            }
+            if (i == COLORS.length -1){
+                entry = ' (less fair)';
+            }
+            b.text = `${b.min}-${b.max}${entry}`;
+            return b;
+        });
+    }
+
+    function getColor(buckets, feature) {
+        if (feature.properties.error_case) {
             return ERROR;
         } else {
-            const max = 9;
-            const min = 0;
-            return OTHERS.find(
-                (c,i) => feature.properties.value >= max - (i+1)*(max-min)/OTHERS.length
-            );
+            let v = feature.properties.value;
+            let b =buckets.find(b => v <= b.max && v >= b.min);
+            if (b) return b.color;
+            else {
+                console.log(feature);
+                return ERROR;
+            }
         }
     }
 
@@ -134,12 +150,13 @@
             attribution: '&copy; HERE 2021'
         }).addTo(map);
 
+        let buckets = getBuckets(geojson);
+
         L.geoJSON(
             geojson, 
             {
                 style: feature => ({
-                            //fillColor: cmap(feature.properties.value),
-                            fillColor: getColor(feature),
+                            fillColor: getColor(buckets, feature),
                             weight: 0.3,
                             opacity: 1,
                             color: 'white',
@@ -150,8 +167,8 @@
             const p = layer.feature.properties;
             return `
                 est. Inhabitants: ${p.weight ? sigFig(p.weight, 2) : 'None'}<br/>
-                est. Travel Time: ${p.travel ? printTravelTime(p.travel): 'not calculated'}<br/>
-                unfairness value: ${p.value ? sigFig(p.value, 2): 'not calculated'}
+                est. Travel Time: ${printTravelTime(p.travel)}<br/>
+                unfairness value: ${p.value === null ? 'not calculated' : sigFig(p.value, 2)}
             `
         }).addTo(map);
 
@@ -160,14 +177,7 @@
         legend.onAdd = function (map) {
             let div = L.DomUtil.create("div", "legend");
             div.innerHTML += "<h4>Legend</h4>";
-            div.innerHTML += `<i style="background: ${WITH_TEST_CENTER}"></i><span>Has Test Center</span><br>`;
-            div.innerHTML += `<i style="background: ${NEAR_TEST_CENTER}"></i><span>Near Test Center</span><br>`;
-            OTHERS.slice().reverse().forEach((c, i) => {
-                let entry = '';
-                if (i == 0) entry = 'more fair';
-                if (i == OTHERS.length -1) entry = 'less fair';
-                div.innerHTML += `<i style="background: ${c}"></i><span>${entry}</span><br>`;
-            });
+            buckets.forEach(b => div.innerHTML += `<i style="background: ${b.color}"></i><span>${b.text}</span><br>`)
             div.innerHTML += `<i style="background: ${ERROR}"></i><span>Something is wrong</span><br>`;
             return div;
         };
