@@ -24,13 +24,65 @@
         .then(res => res.json())
         .then(res => {
             drawMap('mapid', res);
-        })
+        });
+
+    function getColorFunction(values) {
+        const NUM_BUCKETS = 9;
+        const COLORS = ['#fff7f3', '#fde0dd', '#fcc5c0', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e', '#7a0177', '#49006a']
+        let max = values.reduce((a,c) => Math.max(a,c), -Infinity);
+        let min = values.reduce((a,c) => Math.min(a,c), Infinity);
+
+        let cmap = v => COLORS.find((c,i) => v >= max - (i+1)*(max-min)/NUM_BUCKETS);
+        return cmap;
+    }
+
+    function getStyle(feature, cmap) {
+        return {
+            fillColor: cmap(feature.properties.value)
+        }
+    }
+
+    function printTravelTime(t) {
+        if (t < 1) {
+            return 'none'
+        } else if (t == 1) {
+            return 'short'
+        } else {
+            return `${t}min`
+        }
+    }
+
+    function sigFig(num, p) {
+        if (num)
+            return Number.parseFloat(num.toExponential(p));
+        else return null;
+    }
 
     function drawMap(mapid, geojson) {
+
+        var cmap = getColorFunction(geojson.features.map(f => f.properties.value))
+
         var map = L.map(mapid).setView([52.5, 13.4], 10);
-        L.geoJSON(geojson).addTo(map);
-
-
+        L.geoJSON(
+            geojson, 
+            {
+                style: feature => ({
+                            fillColor: cmap(feature.properties.value),
+                            weight: 0.3,
+                            opacity: 1,
+                            color: 'white',
+                            fillOpacity: 0.7
+                        })
+            }
+        ).bindPopup(layer => {
+            const p = layer.feature.properties;
+            console.log(p);
+            return `
+                est. Inhabitants: ${sigFig(p.weight, 2)}<br/>
+                est. Travel Time: ${printTravelTime(p.travel)}<br/>
+                unfairness value: ${sigFig(p.value, 2)}
+            `
+        }).addTo(map);
     }
 </script>
 </body>
