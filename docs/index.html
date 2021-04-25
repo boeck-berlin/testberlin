@@ -64,7 +64,9 @@
 <section id="intro">
 <h1>Test Center Fairness in Berlin</h1>
 <p>
-    This project is trying to quantify, how fair a the test centers are distributed in Berlin.
+    This project is trying to quantify how fairly test centers are distributed in Berlin.
+    For this analysis, fairness is calculated based on the travel time (with public transit) 
+    to the next closest testing center as well as the number of people living in that area.
 </p>
 <p>
     The project does not claim any scientific rigor. It's mostly a tech demo for hexgrids 
@@ -75,7 +77,13 @@
     (Un-)Fairness is caluclated as <code>travelTime * log (1 + inhabitants)</code>. 
     That means, more travel time or more inhabitants means more unfairness.
 </p>
-<p>For the making of see this <a href="hex-grid-maker.html" target="_blank">Python notebook</a> or the <a href="https://github.com/boeck-berlin/testberlin" target="_blank">github repository</a>.</p>
+<p>For the making of see this <a href="hex-grid-maker.html" target="_blank">Python notebook</a> 
+    or the <a href="https://github.com/boeck-berlin/testberlin" target="_blank">github repository</a>.
+</p>
+<p>
+    The test centers where pulled from <a href="https://test-to-go.berlin/" target="_blank">Test To Go Berlin</a> 
+    and the geo data is available on <a href="https://daten.berlin.de" target="_blank">Berlins Open Data Portal</a>.
+</p>
 </section>
 
 <div id="map"></div>
@@ -168,7 +176,7 @@
             return `
                 est. Inhabitants: ${p.weight ? sigFig(p.weight, 2) : 'None'}<br/>
                 est. Travel Time: ${printTravelTime(p.travel)}<br/>
-                unfairness value: ${p.value === null ? 'not calculated' : sigFig(p.value, 2)}
+                unfairness value: ${p.value === null ? 'N/A' : sigFig(p.value, 2)}
             `
         }).addTo(map);
 
@@ -178,7 +186,7 @@
             let div = L.DomUtil.create("div", "legend");
             div.innerHTML += "<h4>Legend</h4>";
             buckets.forEach(b => div.innerHTML += `<i style="background: ${b.color}"></i><span>${b.text}</span><br>`)
-            div.innerHTML += `<i style="background: ${ERROR}"></i><span>Something is wrong</span><br>`;
+            div.innerHTML += `<i style="background: ${ERROR}"></i><span>N/A</span><br>`;
             return div;
         };
         legend.addTo(map);
