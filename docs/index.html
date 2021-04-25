@@ -2,39 +2,87 @@
 <html>
 <head>
 	
-	<title>Quick Start - Leaflet</title>
+	<title>Test Berlin</title>
 
 	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />	
 	<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
 
 
+    <style>
+        html, body {
+            height: 100%;
+            width: 100vw;
+        }
+
+        #map {
+            height: 60%;
+            width: 98vw;
+        }
+
+        section#intro {
+            padding: 0 1vw;
+        }
+
+        .legend {
+            padding: 6px 8px;
+            font: 14px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255, 255, 255, 0.8);
+            /*box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);*/
+            /*border-radius: 5px;*/
+            line-height: 24px;
+            color: #555;
+        }
+        .legend h4 {
+            text-align: center;
+            font-size: 16px;
+            margin: 2px 12px 8px;
+            color: #777;
+        }
+
+        .legend span {
+            position: relative;
+            bottom: 3px;
+        }
+
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin: 0 8px 0 0;
+            opacity: 0.7;
+        }
+    </style>
 	
 </head>
 <body>
 
-<div id="mapid" style="width: 600px; height: 400px;"></div>
+<section id="intro">
+<h1>Test Center Fairness in Berlin</h1>
+<p>
+    This project is trying to quantify, how fair a the test centers are distributed in Berlin.
+    It is more fair if more people have shorter travel times to the test centers.
+</p>
+<p>
+    The project does not claim any scientific rigor. It's mostly a tech demo for hexgrids 
+    and the use of public transport for travel times instead of the more commonly seen
+    LOR geometries and travel times by car.
+</p>
+<p>For the making of see this <a href="hex-grid-maker.html" target="_blank">Python notebook</a> or the github repository.</p>
+</section>
+
+<div id="map"></div>
 <script>
 
-    fetch('result.json')
-        .then(res => res.json())
-        .then(res => {
-            drawMap('mapid', res);
-        });
-
-    function getColorFunction(values) {
-        const NUM_BUCKETS = 9;
-        const COLORS = ['#fff7f3', '#fde0dd', '#fcc5c0', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e', '#7a0177', '#49006a']
-        let max = values.reduce((a,c) => Math.max(a,c), -Infinity);
-        let min = values.reduce((a,c) => Math.min(a,c), Infinity);
-
-        let cmap = v => COLORS.find((c,i) => v >= max - (i+1)*(max-min)/NUM_BUCKETS);
-        return cmap;
-    }
+    const COLORS = ['#fff7f3', '#fde0dd', '#fcc5c0', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e', '#7a0177', '#49006a']
+    const WITH_TEST_CENTER = '#49006a';
+    const NEAR_TEST_CENTER = '#7a0177';
+    const OTHERS = ['#fde0dd', '#fcc5c0', '#fa9fb5', '#f768a1', '#dd3497', '#ae017e'];
+    const ERROR = '#FFF';
 
     function getStyle(feature, cmap) {
         return {
@@ -58,32 +106,79 @@
         else return null;
     }
 
+    function getColor(feature) {
+        if (feature.properties.travel == 0.0) {
+            return WITH_TEST_CENTER;
+        } else if (feature.properties.travel == 1.0) {
+            return NEAR_TEST_CENTER;
+        } else if (feature.properties.error_case) {
+            return ERROR;
+        } else {
+            const max = 9;
+            const min = 0;
+            return OTHERS.find(
+                (c,i) => feature.properties.value >= max - (i+1)*(max-min)/OTHERS.length
+            );
+        }
+    }
+
     function drawMap(mapid, geojson) {
+        const hereStyle = 'reduced.night';
+        const hereAPIKey = 'uQjnFyw9lB9Wopp6q1W4697ncIfZaaBdRm8qk846CAU';
+        const hereTileUrl = `https://2.base.maps.ls.hereapi.com/maptile/2.1/maptile/newest/${hereStyle}/{z}/{x}/{y}/512/png8?apiKey=${hereAPIKey}&ppi=320`;
 
-        var cmap = getColorFunction(geojson.features.map(f => f.properties.value))
+        let map = L.map(mapid).setView([52.5, 13.4], 10);
 
-        var map = L.map(mapid).setView([52.5, 13.4], 10);
+        L.tileLayer(hereTileUrl, {
+            maxZoom: 12,
+            attribution: '&copy; HERE 2021'
+        }).addTo(map);
+
         L.geoJSON(
             geojson, 
             {
                 style: feature => ({
-                            fillColor: cmap(feature.properties.value),
+                            //fillColor: cmap(feature.properties.value),
+                            fillColor: getColor(feature),
                             weight: 0.3,
                             opacity: 1,
                             color: 'white',
-                            fillOpacity: 0.7
+                            fillOpacity: 0.5
                         })
             }
         ).bindPopup(layer => {
             const p = layer.feature.properties;
-            console.log(p);
             return `
-                est. Inhabitants: ${sigFig(p.weight, 2)}<br/>
-                est. Travel Time: ${printTravelTime(p.travel)}<br/>
-                unfairness value: ${sigFig(p.value, 2)}
+                est. Inhabitants: ${p.weight ? sigFig(p.weight, 2) : 'None'}<br/>
+                est. Travel Time: ${p.travel ? printTravelTime(p.travel): 'not calculated'}<br/>
+                unfairness value: ${p.value ? sigFig(p.value, 2): 'not calculated'}
             `
         }).addTo(map);
+
+        let legend = L.control({ position: "topright" });
+
+        legend.onAdd = function (map) {
+            let div = L.DomUtil.create("div", "legend");
+            div.innerHTML += "<h4>Legend</h4>";
+            div.innerHTML += `<i style="background: ${WITH_TEST_CENTER}"></i><span>Has Test Center</span><br>`;
+            div.innerHTML += `<i style="background: ${NEAR_TEST_CENTER}"></i><span>Near Test Center</span><br>`;
+            OTHERS.slice().reverse().forEach((c, i) => {
+                let entry = '';
+                if (i == 0) entry = 'more fair';
+                if (i == OTHERS.length -1) entry = 'less fair';
+                div.innerHTML += `<i style="background: ${c}"></i><span>${entry}</span><br>`;
+            });
+            div.innerHTML += `<i style="background: ${ERROR}"></i><span>Something is wrong</span><br>`;
+            return div;
+        };
+        legend.addTo(map);
     }
+
+    fetch('result.json')
+        .then(res => res.json())
+        .then(res => {
+            drawMap('map', res);
+        });
 </script>
 </body>
 </html>
