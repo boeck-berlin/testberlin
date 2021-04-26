@@ -62,7 +62,7 @@
 <body>
 
 <section id="intro">
-<h1>Test Center Fairness in Berlin</h1>
+<h3>Test Center Fairness in Berlin</h3>
 <p>
     This project is trying to quantify how fairly test centers are distributed in Berlin.
     For this analysis, fairness is calculated based on the travel time (with public transit) 
@@ -90,9 +90,19 @@
 
 <section>
 <h2>Sources and Attribution</h2>
-<p>
-    All data sources can be found at <a href="datalog.md" target="_blank"></a>
-</p>
+<h3 id="einwohner-in-lor">Einwohner in LOR</h3>
+<p>CSV directly from <a href="https://daten.berlin.de/datensaetze/einwohnerinnen-und-einwohner-berlin-lor-planungsr%C3%A4umen-am-31122019" target="_blank">Open Data Portal</a></p>
+<p>(Deeplink) <a href="https://www.statistik-berlin-brandenburg.de/opendata/EWR201912E_Matrix.csv" target="_blank">EWR201912E_Matrix.csv</a></p>
+<h3 id="lor-geodaten">LOR Geodaten</h3>
+<p>Shapefile from the <a href="https://www.stadtentwicklung.berlin.de/planen/basisdaten_stadtentwicklung/lor/de/download.shtml" target="_blank">Senatsverwaltung für Stadtentwicklung</a></p>
+<p>(Deeplink) <a href="https://www.stadtentwicklung.berlin.de/planen/basisdaten_stadtentwicklung/lor/download/LOR_SHP_2019.zip" target="_blank">LOR_SHP_2019.zip</a></p>
+<h3 id="rbs-statistische-bl-cke-mit-einwohnerkategorie">RBS - Statistische Blöcke mit Einwohnerkategorie</h3>
+<p>GeoJSON via the FIS Broker from <a href="https://daten.berlin.de/datensaetze/statistische-bl%C3%B6cke-des-rbs-wfs" target="_blank">Open Data Portal</a></p>
+<p>(Deeplink) <a href="https://fbinter.stadt-berlin.de/fb/wfs/data/senstadt/s_rbs_bloecke?REQUEST=GetFeature&amp;SERVICE=WFS&amp;version=2.0.0&amp;TYPENAMES=s_rbs_bloecke&amp;outputFormat=application/json" target="_blank">s_rbs_bloecke?outputFormat=application/json</a></p>
+<h3 id="teststellen">Teststellen</h3>
+<p>JSON from internal API call at <a href="https://test-to-go.berlin">Test To Go Berlin</a></p>
+<p>(Deeplink) <a href="https://test-to-go.berlin/wp-admin/admin-ajax.php?action=asl_load_stores&amp;nonce=502af03e4d&amp;load_all=1&amp;layout=1" target="_blank">test-to-go.json</a></p>
+
 </section>
 <script>
 
